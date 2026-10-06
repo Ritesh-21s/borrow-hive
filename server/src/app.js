@@ -62,8 +62,14 @@ app.use('/api/users', userRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/borrow-posts', borrowPostRoutes);
 
-// Health check
-app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+// Root status & Health check
+app.get('/', (req, res) => res.json({
+  success: true,
+  message: 'BorrowHive API is running 🚀',
+  status: 'online',
+  version: '1.0.0',
+}));
+app.get(['/health', '/api/health'], (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // 404
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found.' }));

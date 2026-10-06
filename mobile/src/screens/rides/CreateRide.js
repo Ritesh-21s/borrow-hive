@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { rideAPI } from '../../api';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
@@ -27,12 +28,14 @@ export default function CreateRide({ navigation, route }) {
   );
   const [totalSeats, setTotalSeats] = useState(existing?.totalSeats?.toString() || '3');
   const [cost, setCost] = useState(
-    existing?.pricePerSeat?.toString() || existing?.cost?.toString() || '0'
+    existing?.pricePerSeat?.toString() || existing?.cost?.toString() || ''
   );
   const [notes, setNotes] = useState(existing?.notes || '');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   const validate = () => {
     const e = {};
@@ -80,8 +83,12 @@ export default function CreateRide({ navigation, route }) {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 24, 40) }]}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Type Toggle if not edit */}
         {!isEdit && (
           <View style={styles.typeSwitcher}>

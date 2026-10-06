@@ -158,7 +158,7 @@ export default function Conversation({ navigation, route }) {
       socketSendImage(conversationId, { url: uploaded.url, publicId: uploaded.publicId }, caption);
       await chatAPI.sendImageMessage(conversationId, { url: uploaded.url, publicId: uploaded.publicId }, caption);
     } catch (err) {
-      Alert.alert('Upload failed', err.message || 'Could not upload image.');
+      Alert.alert('Photo upload failed', err.message || "Couldn't upload your photo. Please try again.");
     } finally {
       setUploadingImage(false);
       setSending(false);

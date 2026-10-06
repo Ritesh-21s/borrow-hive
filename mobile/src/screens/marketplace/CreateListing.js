@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { listingAPI } from '../../api';
 import Input from '../../components/common/Input';
@@ -31,15 +32,20 @@ export default function CreateListing({ navigation, route }) {
 
   const [title, setTitle] = useState(existingListing?.title || '');
   const [description, setDescription] = useState(existingListing?.description || '');
-  const [category, setCategory] = useState(existingListing?.category || 'other');
+  // BUG 7: no risky preselects — start blank so user must actively choose
+  const [category, setCategory] = useState(existingListing?.category || '');
+  // BUG 4: price starts empty, not '0'
   const [price, setPrice] = useState(
-    existingListing?.price?.toString() || existingListing?.budget?.toString() || ''
+    existingListing?.price ? existingListing.price.toString()
+    : existingListing?.budget ? existingListing.budget.toString()
+    : ''
   );
-  const [condition, setCondition] = useState(existingListing?.condition || 'good');
+  // BUG 7: condition starts unselected for new listings
+  const [condition, setCondition] = useState(existingListing?.condition || '');
   const [acceptedConditions, setAcceptedConditions] = useState(
     existingListing?.acceptedConditions && existingListing.acceptedConditions.length > 0
       ? existingListing.acceptedConditions
-      : ['good', 'like_new']
+      : []
   );
   const [images, setImages] = useState(
     existingListing?.images?.length > 0
@@ -52,6 +58,9 @@ export default function CreateListing({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // BUG 6: safe-area inset for bottom button visibility
+  const insets = useSafeAreaInsets();
 
   const toggleAcceptedCondition = (cond) => {
     setAcceptedConditions((prev) =>
@@ -75,7 +84,8 @@ export default function CreateListing({ navigation, route }) {
         const uploaded = await uploadImageToCloudinary(result.assets[0].uri);
         setImages((prev) => [...prev, uploaded]);
       } catch (err) {
-        Alert.alert('Upload failed', err.message || 'Could not upload image. Please try again.');
+        // BUG 2: friendly message — raw error is already logged inside uploadImageToCloudinary
+        Alert.alert('Photo upload failed', err.message || "Couldn't upload your photo. Please try again.");
       } finally {
         setUploading(false);
       }
@@ -85,12 +95,16 @@ export default function CreateListing({ navigation, route }) {
   const validate = () => {
     const e = {};
     if (!title.trim()) e.title = 'Product name is required';
+    // BUG 7: category is now required
+    if (!category) e.category = 'Please select a category.';
     if (!isBuy && images.length === 0) {
       e.image = 'At least 1 product image is required for a Sell Request.';
     }
     if (!isBuy && (!price || parseFloat(price) <= 0)) {
       e.price = 'Please enter a valid price.';
     }
+    // BUG 7: condition required for sell listings
+    if (!isBuy && !condition) e.condition = 'Please select a condition.';
     if (isBuy && acceptedConditions.length === 0) {
       e.condition = 'Select at least one accepted condition.';
     }
@@ -132,8 +146,13 @@ export default function CreateListing({ navigation, route }) {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    // BUG 5: 'height' on Android adjusts the view height so the focused field is never hidden
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 24, 40) }]}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Type Switcher */}
         {!isEdit && (
           <View style={styles.typeSwitcher}>
@@ -205,14 +224,19 @@ export default function CreateListing({ navigation, route }) {
             />
           ))}
         </View>
+        {errors.category ? <Text style={styles.errorText}>{errors.category}</Text> : null}
 
-        {/* Price / Budget */}
+        {/* Price / Budget — BUG 3: numeric keyboard, BUG 4: empty default with placeholder */}
         <Input
           label={isBuy ? 'Your Budget ₹ (Optional)' : 'Price ₹ *'}
           value={price}
-          onChangeText={setPrice}
-          placeholder="0"
-          keyboardType="numeric"
+          onChangeText={(text) => {
+            // Allow digits and a single decimal point only
+            const sanitized = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+            setPrice(sanitized);
+          }}
+          placeholder="e.g. 499"
+          keyboardType="decimal-pad"
           error={errors.price}
         />
 
@@ -231,6 +255,7 @@ export default function CreateListing({ navigation, route }) {
                 />
               ))}
             </View>
+            {errors.condition && !isBuy ? <Text style={styles.errorText}>{errors.condition}</Text> : null}
           </View>
         ) : (
           <View style={{ marginBottom: Spacing.md }}>

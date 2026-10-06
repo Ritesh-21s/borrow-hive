@@ -25,6 +25,16 @@ import { usePushNotifications } from './src/hooks/usePushNotifications';
 import NotificationSocketBridge from './src/components/NotificationSocketBridge';
 import { Colors } from './src/constants/theme';
 
+// IMPORTANT: RootWrapper MUST be defined outside the App component.
+// Defining a component inside a render function causes React to treat it as a
+// new type on every render, unmounting and remounting the entire tree — which
+// destroys input focus every time any state changes (e.g. Input focused state).
+const WebWrapper = ({ children, style }) => <View style={style}>{children}</View>;
+const GestureHandlerRootView = Platform.OS !== 'web'
+  ? require('react-native-gesture-handler').GestureHandlerRootView
+  : null;
+const RootWrapper = Platform.OS === 'web' ? WebWrapper : GestureHandlerRootView;
+
 // Inner component that can use context hooks
 function AppInner() {
   const { user } = useAuth();
@@ -77,11 +87,6 @@ export default function App() {
       document.head.appendChild(styleEl);
     }
   }
-
-  // On web, GestureHandlerRootView / reanimated cause worklets errors — use plain View
-  const RootWrapper = Platform.OS === 'web'
-    ? ({ children, style }) => <View style={style}>{children}</View>
-    : require('react-native-gesture-handler').GestureHandlerRootView;
 
   return (
     <RootWrapper style={{ flex: 1 }}>

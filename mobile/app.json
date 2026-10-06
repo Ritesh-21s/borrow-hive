@@ -6,12 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#16181D"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.borrowhive.app"
@@ -40,8 +34,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "your-expo-project-id"
+        "projectId": "da8aa66c-4a2c-4633-a111-c873fdf53471"
       }
-    }
+    },
+    "owner": "ritesh-21s"
   }
 }

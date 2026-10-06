@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { userAPI } from '../../api';
@@ -26,6 +27,8 @@ export default function EditProfile({ navigation }) {
   const [avatar, setAvatar] = useState(user?.avatar || { url: '', publicId: '' });
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   const pickAvatar = async () => {
     try {
@@ -47,14 +50,16 @@ export default function EditProfile({ navigation }) {
 
       if (!result.canceled && result.assets?.[0]?.uri) {
         setUploading(true);
-        const uploaded = await uploadImageToCloudinary(result.assets[0].uri);
-        setAvatar(uploaded);
+        try {
+          const uploaded = await uploadImageToCloudinary(result.assets[0].uri);
+          setAvatar(uploaded);
+        } catch (err) {
+          // Friendly message — raw error logged inside uploadImageToCloudinary
+          Alert.alert('Photo upload failed', err.message || "Couldn't upload your photo. Please try again.");
+        } finally {
+          setUploading(false);
+        }
       }
-    } catch (err) {
-      Alert.alert('Upload Error', err.message || 'Could not upload photo.');
-    } finally {
-      setUploading(false);
-    }
   };
 
   const handleSave = async () => {
@@ -79,11 +84,11 @@ export default function EditProfile({ navigation }) {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 24, 40) }]}
         keyboardShouldPersistTaps="handled"
       >
         {/* Avatar Section */}

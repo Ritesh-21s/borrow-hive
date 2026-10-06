@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { borrowPostAPI } from '../../api';
 import Input from '../../components/common/Input';
@@ -18,7 +19,8 @@ export default function RaiseBorrowRequest({ navigation, route }) {
   const isEdit = !!existingPost;
 
   const [title, setTitle] = useState(existingPost?.title || '');
-  const [category, setCategory] = useState(existingPost?.category || 'tools');
+  // BUG 7: start with no category selected
+  const [category, setCategory] = useState(existingPost?.category || '');
   const [imageUrl, setImageUrl] = useState(existingPost?.imageUrl || '');
   const [neededFrom, setNeededFrom] = useState(
     existingPost?.neededFrom ? new Date(existingPost.neededFrom).toISOString().slice(0, 16) : ''
@@ -31,6 +33,8 @@ export default function RaiseBorrowRequest({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const insets = useSafeAreaInsets();
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -46,7 +50,8 @@ export default function RaiseBorrowRequest({ navigation, route }) {
         const uploaded = await uploadImageToCloudinary(result.assets[0].uri);
         setImageUrl(uploaded.url);
       } catch (err) {
-        Alert.alert('Upload failed', err.message || 'Could not upload image.');
+        // Friendly message — raw error logged inside uploadImageToCloudinary
+        Alert.alert('Photo upload failed', err.message || "Couldn't upload your photo. Please try again.");
       } finally {
         setUploading(false);
       }
@@ -56,6 +61,8 @@ export default function RaiseBorrowRequest({ navigation, route }) {
   const validate = () => {
     const e = {};
     if (!title.trim()) e.title = 'Item name is required';
+    // BUG 7: category required
+    if (!category) e.category = 'Please select a category.';
     if (!neededFrom) e.neededFrom = 'Needed from date/time is required (YYYY-MM-DDTHH:mm)';
     if (!neededUntil) e.neededUntil = 'Needed until date/time is required (YYYY-MM-DDTHH:mm)';
     if (neededFrom && neededUntil && new Date(neededFrom) >= new Date(neededUntil)) {
@@ -92,8 +99,12 @@ export default function RaiseBorrowRequest({ navigation, route }) {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom + 24, 40) }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.heading}>{isEdit ? 'Edit Borrow Request' : 'Raise a Borrow Request'}</Text>
         <Text style={styles.subheading}>
           Ask your campus community for an item you need to borrow temporarily.
@@ -140,6 +151,7 @@ export default function RaiseBorrowRequest({ navigation, route }) {
             />
           ))}
         </View>
+        {errors.category ? <Text style={styles.errorText}>{errors.category}</Text> : null}
 
         {/* Time duration */}
         <Input
@@ -259,4 +271,5 @@ const styles = StyleSheet.create({
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.md },
   chipItem: { marginBottom: 4 },
   submitBtn: { marginTop: Spacing.md },
+  errorText: { fontSize: 11, color: Colors.error, marginTop: -4, marginBottom: 8, fontFamily: 'Inter_500Medium' },
 });
