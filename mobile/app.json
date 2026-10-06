@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "BorrowHive",
+    "slug": "borrowhive",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#16181D"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.borrowhive.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#16181D"
+      },
+      "package": "com.borrowhive.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#F0A93A",
+          "defaultChannel": "default"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-expo-project-id"
+      }
+    }
+  }
+}
