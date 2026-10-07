@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar, Modal,
 } from 'react-native';
@@ -26,7 +26,22 @@ export default function MarketplaceList({ navigation, route }) {
   const initialFilter = route.params?.filter || 'all';
   const { user } = useAuth();
 
+  // `search` is the live input value — updated on every keystroke for responsive UI.
+  // `debouncedSearch` is what actually triggers fetches — only updates 500ms after
+  // the user stops typing. This prevents setLoading(true) → full re-render → focus loss
+  // on every single keypress.
   const [search, setSearch] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const debounceTimer = useRef(null);
+
+  const handleSearchChange = useCallback((text) => {
+    setSearch(text);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(text);
+    }, 500);
+  }, []);
+
   const [category, setCategory] = useState('All');
   const [tabFilter, setTabFilter] = useState(initialFilter);
   const [listings, setListings] = useState([]);
@@ -40,7 +55,7 @@ export default function MarketplaceList({ navigation, route }) {
     try {
       if (p === 1) setLoading(true);
       const params = { page: p, limit: 15 };
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (category !== 'All') params.category = category.toLowerCase();
       if (tabFilter && tabFilter !== 'all') params.type = tabFilter;
 
@@ -55,11 +70,11 @@ export default function MarketplaceList({ navigation, route }) {
     } finally {
       setLoading(false);
     }
-  }, [search, category, tabFilter]);
+  }, [debouncedSearch, category, tabFilter]);
 
   useEffect(() => {
     fetchListings(1, true);
-  }, [search, category, tabFilter]);
+  }, [debouncedSearch, category, tabFilter]);
 
   const loadMore = () => {
     if (hasMore && !loading) fetchListings(page + 1);
@@ -96,7 +111,7 @@ export default function MarketplaceList({ navigation, route }) {
       </View>
 
       <View style={styles.header}>
-        <SearchBar value={search} onChangeText={setSearch} placeholder="Search marketplace" />
+        <SearchBar value={search} onChangeText={handleSearchChange} placeholder="Search marketplace" />
         {/* Filter Tabs: All / Sell / Buy */}
         <View style={styles.tabRow}>
           {FILTER_TABS.map((t) => {

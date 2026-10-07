@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { storage } from '../utils/storage';
 import { API_URL } from '../constants/config';
@@ -54,28 +54,36 @@ export const SocketProvider = ({ children, enabled }) => {
     };
   }, [enabled]);
 
-  const joinConversation = (conversationId) => {
+  // CRITICAL FIX: All functions MUST be wrapped in useCallback with empty deps [].
+  // Without this, every time `connected` state toggles (socket connect/reconnect),
+  // SocketProvider re-renders and creates NEW function references. Any component that
+  // has these functions in a useEffect dep array (e.g. NotificationSocketBridge) will
+  // re-run its effect, calling setUnreadCount, which re-renders NotificationContext,
+  // which re-renders every screen — destroying input focus on each keystroke or connection event.
+  const joinConversation = useCallback((conversationId) => {
     socketRef.current?.emit('join_conversation', conversationId);
-  };
+  }, []);
 
-  const sendMessage = (conversationId, text) => {
+  const sendMessage = useCallback((conversationId, text) => {
     socketRef.current?.emit('send_message', { conversationId, text });
-  };
+  }, []);
 
-  const sendImageMessage = (conversationId, image, text = '') => {
+  const sendImageMessage = useCallback((conversationId, image, text = '') => {
     socketRef.current?.emit('send_message', { conversationId, text, image });
-  };
+  }, []);
 
-  const emitTyping = (conversationId, isTyping) => {
+  const emitTyping = useCallback((conversationId, isTyping) => {
     socketRef.current?.emit('typing', { conversationId, isTyping });
-  };
+  }, []);
 
-  const on = (event, handler) => {
+  const on = useCallback((event, handler) => {
     socketRef.current?.on(event, handler);
     return () => socketRef.current?.off(event, handler);
-  };
+  }, []);
 
-  const off = (event, handler) => socketRef.current?.off(event, handler);
+  const off = useCallback((event, handler) => {
+    socketRef.current?.off(event, handler);
+  }, []);
 
   return (
     <SocketContext.Provider value={{ connected, joinConversation, sendMessage, sendImageMessage, emitTyping, on, off, socket: socketRef }}>
