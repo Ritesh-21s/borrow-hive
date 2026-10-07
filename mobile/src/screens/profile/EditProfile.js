@@ -60,6 +60,9 @@ export default function EditProfile({ navigation }) {
           setUploading(false);
         }
       }
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to pick image.');
+    }
   };
 
   const handleSave = async () => {
